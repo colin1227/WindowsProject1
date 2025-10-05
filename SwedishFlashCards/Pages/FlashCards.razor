@@ -1,0 +1,233 @@
+@page "/flashcards"
+@using SwedishFlashCards.Models
+@using SwedishFlashCards.Services
+@inject FlashCardService FlashCardService
+
+<PageTitle>Swedish Flash Cards</PageTitle>
+
+<div class="flashcard-container">
+    <h1>Swedish Flash Cards</h1>
+    <p class="subtitle">Learn Swedish vocabulary</p>
+
+    <div class="card-counter">
+        Card @(currentIndex + 1) of @totalCards
+    </div>
+
+    <div class="flashcard @(isFlipped ? "flipped" : "")" @onclick="FlipCard">
+        <div class="flashcard-inner">
+            <div class="flashcard-front">
+                <div class="card-content">
+                    <div class="language-label">Swedish</div>
+                    <h2>@currentCard.Swedish</h2>
+                    <p class="hint">Click to reveal English translation</p>
+                </div>
+            </div>
+            <div class="flashcard-back">
+                <div class="card-content">
+                    <div class="language-label">English</div>
+                    <h2>@currentCard.English</h2>
+                    <p class="hint">Click to see Swedish word</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation-buttons">
+        <button class="btn btn-primary" @onclick="PreviousCard" disabled="@(currentIndex == 0)">
+            ← Previous
+        </button>
+        <button class="btn btn-secondary" @onclick="FlipCard">
+            Flip Card
+        </button>
+        <button class="btn btn-primary" @onclick="NextCard" disabled="@(currentIndex == totalCards - 1)">
+            Next →
+        </button>
+    </div>
+
+    <div class="progress-bar-container">
+        <div class="progress-bar" style="width: @((currentIndex + 1) * 100 / totalCards)%"></div>
+    </div>
+</div>
+
+<style>
+    .flashcard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .card-counter {
+        font-size: 1.2em;
+        color: #0066cc;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    .flashcard {
+        perspective: 1000px;
+        margin: 30px auto;
+        cursor: pointer;
+    }
+
+    .flashcard-inner {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+
+    .flashcard.flipped .flashcard-inner {
+        transform: rotateY(180deg);
+    }
+
+    .flashcard-front, .flashcard-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .flashcard-front {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .flashcard-back {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        transform: rotateY(180deg);
+    }
+
+    .card-content {
+        padding: 40px;
+        width: 100%;
+    }
+
+    .language-label {
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .card-content h2 {
+        font-size: 3em;
+        margin: 20px 0;
+        font-weight: bold;
+    }
+
+    .hint {
+        font-size: 0.9em;
+        opacity: 0.7;
+        margin-top: 20px;
+    }
+
+    .navigation-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin: 30px 0;
+    }
+
+    .btn {
+        padding: 12px 30px;
+        font-size: 1.1em;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background-color: #667eea;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 8px;
+        background-color: #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 30px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+    }
+</style>
+
+@code {
+    private FlashCard currentCard = new FlashCard();
+    private int currentIndex = 0;
+    private int totalCards = 0;
+    private bool isFlipped = false;
+
+    protected override void OnInitialized()
+    {
+        totalCards = FlashCardService.GetTotalCards();
+        currentCard = FlashCardService.GetCard(currentIndex);
+    }
+
+    private void NextCard()
+    {
+        if (currentIndex < totalCards - 1)
+        {
+            currentIndex++;
+            currentCard = FlashCardService.GetCard(currentIndex);
+            isFlipped = false;
+        }
+    }
+
+    private void PreviousCard()
+    {
+        if (currentIndex > 0)
+        {
+            currentIndex--;
+            currentCard = FlashCardService.GetCard(currentIndex);
+            isFlipped = false;
+        }
+    }
+
+    private void FlipCard()
+    {
+        isFlipped = !isFlipped;
+    }
+}
